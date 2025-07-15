@@ -1,86 +1,99 @@
-# Network Asset Centrality Analysis
+# Graph-Based Asset Criticality Analysis
 
-This project provides a complete pipeline to analyze network traffic data and identify the most critical assets using graph theory. The script generates synthetic network flow (netflow) and Zeek log data, builds a network graph from this data, calculates various centrality metrics, and creates an interactive visualization of the most central nodes.
+This project provides a Python-based toolkit for identifying critical assets within a network. It moves beyond traditional methods by employing a composite analysis approach, combining network traffic analysis with user and asset context from Active Directory (AD). The result is a multi-faceted view of criticality that considers not only an asset's operational importance but also its security risk.
 
-The entire process is automated within the `main.py` script. No external data files are needed to get started.
+The script performs four independent analyses, each centered on a key graph theory metric: Degree, Betweenness, Closeness, and Eigenvector centrality.
 
----
+## Key Features
 
-### Key Features
+* **Synthetic Data Generation:** Creates realistic, correlated datasets for Netflow, Zeek, and Active Directory to simulate an enterprise network.
+* **Graph-Based Modeling:** Constructs a network graph from traffic logs to visualize relationships between assets.
+* **Comprehensive Centrality Analysis:** Calculates four key centrality metrics to measure different aspects of an asset's importance.
+* **Active Directory Correlation:** Enriches the analysis by incorporating crucial security context, such as user privilege levels and system roles (e.g., Domain Controller).
+* **Tiered Matrix Assessment:** Uses a quantitative, rule-based matrix to determine a final criticality level (`CRITICAL`, `High`, `Medium`, `Low`).
+* **Rich Visualizations:** Generates separate, interactive HTML graphs for each centrality analysis, allowing for easy exploration of results.
 
-*   **Synthetic Data Generation:** Automatically creates `netflow.csv` and `zeek.csv` files with realistic-looking network traffic data.
-*   **Graph Construction:** Parses the CSV files and builds a network graph where nodes are IP addresses and edges represent connections.
-*   **Centrality Analysis:** Calculates four key centrality metrics to identify important nodes:
-    *   **Degree Centrality:** Measures the number of direct connections a node has.
-    *   **Betweenness Centrality:** Measures how often a node lies on the shortest path between other nodes.
-    *   **Closeness Centrality:** Measures the average shortest distance from a node to all other nodes.
-    *   **Eigenvector Centrality:** Measures the influence of a node in the network.
-*   **Top Asset Reporting:** Prints a clean, ranked list of the most critical assets based on each centrality score.
-*   **Interactive Visualization:** Generates an `network_graph.html` file using PyVis, allowing you to explore a subgraph of the most important network assets interactively.
+## How It Works
 
----
+The analysis pipeline is executed in a series of automated steps:
 
-### Prerequisites
+### 1. Data Generation and Graph Construction
 
-You will need Python 3 and the following libraries.
+* The script first generates three CSV files: `netflow.csv`, `zeek.csv`, and `ad_data.csv`.
+* `netflow.csv` and `zeek.csv` contain simulated network traffic, primarily in a client-to-server (hub-and-spoke) model.
+* `ad_data.csv` provides the security context, assigning roles and privilege levels to each asset.
+* A network graph is then constructed from the traffic logs, where IPs are nodes and communication events are edges.
 
-*   `pandas`
-*   `numpy`
-*   `networkx`
-*   `pyvis`
+### 2. Centrality Analytics and AD Correlation
 
-You can install all dependencies with a single command using pip:
+The core of the analysis is an iterative process that is repeated for each of the four centrality metrics. For each metric:
+
+1.  **Calculate Centrality Score:** A quantitative score is calculated for every node in the graph.
+2.  **Assign Tiers:** Each asset is assigned two tiers based on the criteria below.
+3.  **Assess Final Criticality:** The final criticality level is determined by looking up the intersection of the two tiers in the matrix.
+
+#### The Tiered Matrix Model
+
+The final criticality score is determined by combining the asset's Network Tier (operational impact) with its AD Tier (security risk).
+
+* **AD Tier (Security Risk) Criteria:**
+    * **Tier 0 (Crown Jewel):** Asset is a Domain Controller or has a 'Domain Admin' logon.
+    * **Tier 1 (High-Value):** Asset has a 'Privileged User' logon.
+    * **Tier 2 (Standard):** Asset has a 'Standard User' logon.
+* **Network Tier (Operational Impact) Criteria:**
+    * **Tier 1 (Critical Hub):** Centrality score is in the top 20% (>= 80th percentile).
+    * **Tier 2 (Connector):** Centrality score is in the middle 20% (60th to 80th percentile).
+    * **Tier 3 (Endpoint):** Centrality score is in the bottom 60% (< 60th percentile).
+
+|                          | **Network Tier 1 (Critical Hub)** | **Network Tier 2 (Connector)** | **Network Tier 3 (Endpoint)** |
+| :----------------------- | :-------------------------------- | :----------------------------- | :---------------------------- |
+| **AD Tier 0 (Crown Jewel)** | CRITICAL                          | CRITICAL                       | High                          |
+| **AD Tier 1 (High-Value)** | CRITICAL                          | High                           | Medium                        |
+| **AD Tier 2 (Standard)** | High                              | Medium                         | Low                           |
+
+## Installation
+
+The project requires Python 3 and the following libraries. You can install them using pip:
 
 ```bash
 pip install pandas numpy networkx pyvis
 ```
 
----
+## Usage
 
-### How to Run
+To run the full analysis pipeline, simply execute the Python script:
 
-1.  **Clone the repository (or just save `main.py`):**
-    ```bash
-    git clone <your-repo-url>
-    cd <your-repo-directory>
-    ```
-
-2.  **Execute the script:**
-    Run the `main.py` file from your terminal.
-
-    ```bash
-    python main.py
-    ```
-
----
-
-### What to Expect (Output)
-
-When you run the script, it will perform the following actions and produce these outputs:
-
-1.  **Console Output:** You will see a step-by-step log printed to your console, showing the progress of:
-    *   Data generation
-    *   Graph building
-    *   Centrality analysis results, including a "Top 5 Assets" report.
-
-2.  **Generated Files:** The following files will be created in the same directory:
-    *   `netflow.csv`: The synthetic netflow data.
-    *   `zeek.csv`: The synthetic Zeek log data.
-    *   `network_graph.html`: **This is the main visual output.** Open this file in your web browser to see and interact with the network graph visualization.
-
-#### Example of the Visualization (`network_graph.html`):
-
-![image](https://user-images.githubusercontent.com/1098293/175829288-750d4f58-06a9-4475-9614-2c6729e1333e.png)
-*(Note: This is a sample image of a PyVis graph. Your graph will be interactive.)*
-
----
-
-### How It Works
-
-The script follows a simple, four-step pipeline defined in the `main()` function:
-
-1.  **`generate_and_save_data()`**: Creates the synthetic data.
-2.  **`load_data()` & `build_graph_from_data()`**: Reads the data and constructs a `networkx` graph.
-3.  **`analyze_centrality()` & `print_top_assets()`**: Computes the centrality scores and displays the results.
-4.  **`visualize_graph()`**: Exports the interactive HTML graph visualization of the most central nodes.
+```bash
+python main.py
 ```
+
+The script will generate the synthetic data, perform the analysis, print the results to the console, and create the HTML visualization files in the same directory.
+
+## Understanding the Output
+
+### Console Reports
+
+For each of the four centrality metrics, the script will print a report listing the **Top 5 Most Critical Assets**. This allows you to quickly see which assets are most important according to each analytical lens.
+
+```
+--- Top 5 Most Critical Assets (based on DEGREE) ---
+Asset: 10.0.0.81       | Criticality: CRITICAL
+Asset: 10.0.0.30       | Criticality: CRITICAL
+...
+```
+
+### Interactive Visualizations
+
+The script generates four HTML files, one for each analysis:
+
+* `criticality_graph_degree.html`
+* `criticality_graph_betweenness.html`
+* `criticality_graph_closeness.html`
+* `criticality_graph_eigenvector.html`
+
+Open these files in a web browser to explore the interactive graph.
+
+* **Node Color** represents the final criticality level (Red = CRITICAL).
+* **Node Size** represents the asset's degree (number of connections).
+* **Borders** highlight the top 5 assets for that specific analysis.
+* **Hovering** over a node reveals a tooltip with its detailed centrality scores.
