@@ -61,11 +61,7 @@ pip install pandas numpy networkx pyvis
 
 ## Usage
 
-To run the full analysis pipeline, simply execute the Python script:
-
-```bash
-python main.py
-```
+To run the full analysis pipeline, simply execute the Python project Asset Criticality Analysis with AD Correlation (Full Centrality) at Google Colab:
 
 The script will generate the synthetic data, perform the analysis, print the results to the console, and create the HTML visualization files in the same directory.
 
